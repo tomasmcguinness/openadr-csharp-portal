@@ -13,6 +13,14 @@ public static class ObjectTypes
     public const string Subscription = "SUBSCRIPTION";
 }
 
+/// <summary>Operations a notification/subscription can describe.</summary>
+public static class Operations
+{
+    public const string Create = "CREATE";
+    public const string Update = "UPDATE";
+    public const string Delete = "DELETE";
+}
+
 /// <summary>Metadata every VTN-addressable object carries, written by the VTN on create/update.</summary>
 public class ObjectMetadata
 {

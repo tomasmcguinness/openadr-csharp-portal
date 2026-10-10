@@ -27,6 +27,8 @@ public static class MqttTopics
 
     public static NotifierOperationsTopics ProgramEvents(string programId) => AllScope($"programs/{programId}/events");
 
+    public static NotifierOperationsTopics VensAll() => AllScope("vens");
+
     public static NotifierOperationsTopics Ven(string venId) => IdScope($"vens/{venId}");
 
     public static NotifierOperationsTopics VenEvents(string venId) => AllScope($"vens/{venId}/events");
@@ -38,6 +40,17 @@ public static class MqttTopics
     /// <summary>The literal topic a given operation is published to for "all objects of this
     /// type" (e.g. programs/create). Used by the publisher; always available (CREATE included).</summary>
     public static string ForOperation(string scope, string operation) => $"{scope}/{operation.ToLowerInvariant()}";
+
+    /// <summary>Picks the CREATE/UPDATE/DELETE topic matching one operation out of a
+    /// discovered topic set. Returns null for CREATE on an object-ID-scoped set (there isn't
+    /// one — see the class remarks).</summary>
+    public static string? TopicFor(NotifierOperationsTopics topics, string operation) => operation switch
+    {
+        "CREATE" => topics.Create,
+        "UPDATE" => topics.Update,
+        "DELETE" => topics.Delete,
+        _ => null,
+    };
 
     private static NotifierOperationsTopics AllScope(string scope) => new()
     {

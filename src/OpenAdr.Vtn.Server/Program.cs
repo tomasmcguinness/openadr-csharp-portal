@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using OpenAdr.Vtn.Server;
 using OpenAdr.Vtn.Server.Data;
+using OpenAdr.Vtn.Server.Endpoints;
+using OpenAdr.Vtn.Server.Mqtt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,12 @@ Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
 builder.Services.AddDbContext<VtnDbContext>(options =>
     options.UseSqlite($"Data Source={databasePath}"));
 
+builder.Services.AddSingleton<VenConnectionTracker>();
+builder.Services.AddSingleton<MqttBrokerService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttBrokerService>());
+builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttBrokerService>());
+builder.Services.AddScoped<NotificationService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -21,6 +29,13 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await SeedData.EnsureSeededAsync(db);
 }
+
+app.MapAuthEndpoints();
+app.MapProgramsEndpoints();
+app.MapEventsEndpoints();
+app.MapVensEndpoints();
+app.MapReportsEndpoints();
+app.MapNotifiersEndpoints();
 
 app.MapGet("/", () => "OpenADR 3.1 VTN demo");
 
