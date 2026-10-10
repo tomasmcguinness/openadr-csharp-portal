@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenAdr.Vtn.Core.Logic;
 using OpenAdr.Vtn.Core.Models;
 using OpenAdr.Vtn.Server.Auth;
 using OpenAdr.Vtn.Server.Data;
+using OpenAdr.Vtn.Server.Hubs;
 using OpenAdr.Vtn.Server.Mqtt;
 
 namespace OpenAdr.Vtn.Server.Endpoints;
@@ -33,13 +35,16 @@ public static class ReportsEndpoints
                 query = query.Where(r => r.ClientName == clientName);
             }
 
-            query = query.OrderByDescending(r => r.CreatedDateTime).Skip(skip);
+            // SQLite's EF provider can't translate DateTimeOffset ordering to SQL, so the
+            // key-based filters above run server-side and the CreatedDateTime ordering runs
+            // in memory — fine at this demo's scale.
+            var results = (await query.ToListAsync()).OrderByDescending(r => r.CreatedDateTime).Skip(skip);
             if (limit is { } take)
             {
-                query = query.Take(take);
+                results = results.Take(take);
             }
 
-            return Results.Json(await query.ToListAsync(), Core.OpenAdrJson.Options);
+            return Results.Json(results.ToList(), Core.OpenAdrJson.Options);
         });
 
         group.MapGet("/{reportId}", async (string reportId, VtnDbContext db) =>
@@ -50,7 +55,12 @@ public static class ReportsEndpoints
                 : Results.Json(report, Core.OpenAdrJson.Options);
         });
 
-        group.MapPost("/", async (ReportRequest request, HttpContext http, VtnDbContext db, NotificationService notifications) =>
+        group.MapPost("/", async (
+            ReportRequest request,
+            HttpContext http,
+            VtnDbContext db,
+            NotificationService notifications,
+            IHubContext<DashboardHub, IDashboardClient> dashboard) =>
         {
             var validation = ReportValidator.Validate(request);
             if (!validation.IsValid)
@@ -78,6 +88,7 @@ public static class ReportsEndpoints
             db.Reports.Add(report);
             await db.SaveChangesAsync();
             await notifications.PublishReportAsync(Operations.Create, report);
+            await dashboard.Clients.All.ReportReceived(report);
 
             return Results.Json(report, Core.OpenAdrJson.Options, statusCode: 201);
         });
