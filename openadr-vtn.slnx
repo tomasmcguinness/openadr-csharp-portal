@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OpenAdr.Vtn.Core/OpenAdr.Vtn.Core.csproj" />
+    <Project Path="src/OpenAdr.Vtn.FakeVen/OpenAdr.Vtn.FakeVen.csproj" />
+    <Project Path="src/OpenAdr.Vtn.Server/OpenAdr.Vtn.Server.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OpenAdr.Vtn.Core.Tests/OpenAdr.Vtn.Core.Tests.csproj" />
+  </Folder>
+</Solution>
