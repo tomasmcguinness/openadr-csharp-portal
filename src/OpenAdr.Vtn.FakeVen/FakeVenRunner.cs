@@ -18,17 +18,41 @@ public class FakeVenRunner(VtnClient api, MqttClientWrapper mqtt, string venName
 
     public async Task RunAsync(CancellationToken ct)
     {
-        await api.FetchTokenAsync(ct);
-        await EnsureVenAsync(ct);
-        await ConnectAndSubscribeAsync(ct);
-        await DiscoverProgramAndEventAsync(ct);
-
         mqtt.Reconnected += async reconnectCt =>
         {
             Logger.Info("Resyncing ven/program/event via REST after MQTT reconnect.");
             await EnsureVenAsync(reconnectCt);
             await DiscoverProgramAndEventAsync(reconnectCt);
         };
+
+        // The VTN itself can be unreachable — at cold start, or because it's mid-restart.
+        // Any failure anywhere in setup-or-loop below (not just the 404 case the inner catch
+        // handles) falls out here and the whole sequence — token, ven, MQTT, discovery — is
+        // simply retried from scratch after a short wait, same as a real cold start.
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await ConnectAndLoopAsync(ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Normal shutdown.
+            }
+            catch (Exception ex)
+            {
+                Logger.Info($"VTN unreachable or an unexpected error occurred ({ex.Message}) — retrying in 5s.");
+                await Task.Delay(TimeSpan.FromSeconds(5), ct);
+            }
+        }
+    }
+
+    private async Task ConnectAndLoopAsync(CancellationToken ct)
+    {
+        await api.FetchTokenAsync(ct);
+        await EnsureVenAsync(ct);
+        await ConnectAndSubscribeAsync(ct);
+        await DiscoverProgramAndEventAsync(ct);
 
         while (!ct.IsCancellationRequested)
         {
