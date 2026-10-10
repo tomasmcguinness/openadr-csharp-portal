@@ -19,4 +19,47 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!--
+    The dashboard (dashboard/) is React/Vite/TS source, not .NET — it is built here so that
+    `dotnet run` and `dotnet publish` always embed a fresh wwwroot/ without a separate manual
+    step, on this machine only ("build on my machine, never on the server" for the Lightsail
+    deploy). Inputs/Outputs make this incremental: npm only runs again when dashboard source
+    actually changed, so a plain C# edit-and-run stays fast.
+  -->
+  <PropertyGroup>
+    <DashboardDir>$(MSBuildProjectDirectory)/../../dashboard</DashboardDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <DashboardSource Include="$(DashboardDir)/src/**/*.*" />
+    <DashboardSource Include="$(DashboardDir)/index.html" />
+    <DashboardSource Include="$(DashboardDir)/package.json" />
+    <DashboardSource Include="$(DashboardDir)/package-lock.json" />
+    <DashboardSource Include="$(DashboardDir)/vite.config.ts" />
+    <DashboardSource Include="$(DashboardDir)/tsconfig*.json" />
+  </ItemGroup>
+
+  <Target Name="BuildDashboard" BeforeTargets="BeforeBuild"
+          Inputs="@(DashboardSource)"
+          Outputs="$(MSBuildProjectDirectory)/wwwroot/index.html">
+    <Exec Command="npm install" WorkingDirectory="$(DashboardDir)" Condition="!Exists('$(DashboardDir)/node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(DashboardDir)" />
+    <RemoveDir Directories="$(MSBuildProjectDirectory)/wwwroot" Condition="Exists('$(MSBuildProjectDirectory)/wwwroot')" />
+    <ItemGroup>
+      <DashboardDist Include="$(DashboardDir)/dist/**/*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DashboardDist)" DestinationFolder="$(MSBuildProjectDirectory)/wwwroot/%(RecursiveDir)" />
+  </Target>
+
+  <!--
+    wwwroot/ is created by the target above, which runs after the SDK's own static-web-assets
+    item discovery has already evaluated an empty folder on a clean checkout — so the publish
+    file set is added explicitly here, rather than relying on the SDK's implicit wwwroot glob.
+  -->
+  <Target Name="IncludeDashboardInPublish" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="BuildDashboard">
+    <ItemGroup>
+      <Content Include="$(MSBuildProjectDirectory)/wwwroot/**/*.*" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
 </Project>

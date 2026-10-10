@@ -26,6 +26,10 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
+// Serves the dashboard (built into wwwroot/ by the BuildDashboard MSBuild target) at "/".
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<VtnDbContext>();
@@ -48,7 +52,5 @@ app.MapReportsEndpoints();
 app.MapNotifiersEndpoints();
 app.MapDashboardEndpoints();
 app.MapHub<DashboardHub>("/hubs/dashboard");
-
-app.MapGet("/", () => "OpenADR 3.1 VTN demo");
 
 app.Run();
