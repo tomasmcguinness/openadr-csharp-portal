@@ -402,6 +402,7 @@ FodyWeavers.xsd
 
 # OpenADR VTN demo specifics
 dashboard/dist/
+src/OpenAdr.Vtn.Server/db/
 *.db
 *.db-shm
 *.db-wal
