@@ -6,7 +6,16 @@ using OpenAdr.Vtn.Server.Endpoints;
 using OpenAdr.Vtn.Server.Hubs;
 using OpenAdr.Vtn.Server.Mqtt;
 
-var builder = WebApplication.CreateBuilder(args);
+// ContentRootPath defaults to the current working directory, not the executable's own
+// directory — so appsettings.json (and the Kestrel port-80 default it carries) would
+// silently go unfound, falling back to Kestrel's built-in :5000, if this is ever launched
+// from anywhere other than its own folder. Anchoring it to AppContext.BaseDirectory makes
+// appsettings.json load correctly regardless of the caller's working directory.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,
+});
 
 builder.Services.Configure<VtnOptions>(builder.Configuration.GetSection(VtnOptions.SectionName));
 

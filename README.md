@@ -58,17 +58,32 @@ request:
 ## Configuration
 
 `src/OpenAdr.Vtn.Server/appsettings.json` plus environment variables (`Vtn__DatabasePath`,
-`Vtn__MqttPort`, standard ASP.NET Core ones like `ASPNETCORE_URLS`):
+`Vtn__MqttPort`, `Kestrel__Endpoints__Http__Url`):
 
 | Key | Default | What |
 |---|---|---|
 | `Vtn:DatabasePath` | `/var/lib/openadr-vtn/vtn.db` (`./db/vtn.db` in Development) | SQLite file path; the directory is created automatically if missing |
 | `Vtn:MqttPort` | `1883` | Port the in-process MQTT broker listens on |
+| `Kestrel:Endpoints:Http:Url` | `http://0.0.0.0:80` (`http://localhost:5080` in Development) | What Kestrel binds to |
 
-Kestrel's port is controlled the normal ASP.NET Core way — `ASPNETCORE_URLS`, or the
-`http` profile in `Properties/launchSettings.json` for local dev (`http://localhost:5080`).
-In production (see below) it's set directly to port 80 via the systemd unit's environment,
-with no reverse proxy in front of it.
+**The HTTP port is baked into `appsettings.json` as an explicit Kestrel endpoint (port 80),
+not left to Kestrel's own built-in default (port 5000)** — so the app binds the right port
+no matter how or from where it's launched, including by hand (`./OpenAdr.Vtn.Server`,
+no flags) rather than only through the systemd unit. `appsettings.Development.json`
+overrides it to `http://localhost:5080` so local `dotnet run` doesn't need root/admin for a
+privileged port; `ASPNETCORE_ENVIRONMENT` unset defaults to Production, so a plain deploy
+with no environment variable set still gets port 80.
+
+One consequence: because an explicit Kestrel endpoint is configured, **`--urls` and
+`ASPNETCORE_URLS` are both ignored** (Kestrel endpoint config takes precedence over them).
+To override the port without rebuilding, set `Kestrel__Endpoints__Http__Url` instead, e.g.
+`Kestrel__Endpoints__Http__Url=http://0.0.0.0:8080`.
+
+The app also explicitly anchors its content root to its own executable directory
+(`AppContext.BaseDirectory` in `Program.cs`), not the caller's current working directory —
+otherwise `appsettings.json` (and this whole port setup) would silently go unfound, and
+Kestrel would fall back to port 5000, if the binary is ever launched from somewhere other
+than its own folder.
 
 ## Local run
 

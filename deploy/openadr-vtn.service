@@ -12,10 +12,15 @@ Restart=on-failure
 RestartSec=5
 
 Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=ASPNETCORE_URLS=http://0.0.0.0:80
 Environment=Vtn__DatabasePath=/var/lib/openadr-vtn/vtn.db
 Environment=Vtn__MqttPort=1883
 
+# Port 80 comes from appsettings.json's "Kestrel:Endpoints:Http:Url" (the production
+# default), not from ASPNETCORE_URLS — explicit Kestrel endpoint configuration takes
+# precedence over ASPNETCORE_URLS/--urls, so that variable would silently do nothing here.
+# To override the port without rebuilding, set Kestrel__Endpoints__Http__Url instead, e.g.:
+#   Environment=Kestrel__Endpoints__Http__Url=http://0.0.0.0:8080
+#
 # Kestrel binds port 80 directly (no reverse proxy) as a non-root user — this grants just
 # enough privilege to open a sub-1024 port, nothing more.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
