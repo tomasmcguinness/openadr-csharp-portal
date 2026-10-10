@@ -406,3 +406,4 @@ src/OpenAdr.Vtn.Server/db/
 *.db
 *.db-shm
 *.db-wal
+deploy/.publish/

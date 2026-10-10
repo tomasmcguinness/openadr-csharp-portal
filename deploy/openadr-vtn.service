@@ -1,0 +1,29 @@
+[Unit]
+Description=OpenADR 3.1 VTN demo
+After=network.target
+
+[Service]
+Type=simple
+User=openadr-vtn
+Group=openadr-vtn
+WorkingDirectory=/opt/openadr-vtn
+ExecStart=/opt/openadr-vtn/OpenAdr.Vtn.Server
+Restart=on-failure
+RestartSec=5
+
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://0.0.0.0:80
+Environment=Vtn__DatabasePath=/var/lib/openadr-vtn/vtn.db
+Environment=Vtn__MqttPort=1883
+
+# Kestrel binds port 80 directly (no reverse proxy) as a non-root user — this grants just
+# enough privilege to open a sub-1024 port, nothing more.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/openadr-vtn
+
+[Install]
+WantedBy=multi-user.target

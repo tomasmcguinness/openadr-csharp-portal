@@ -20,6 +20,17 @@
   </PropertyGroup>
 
   <!--
+    Tuned for the 512 MB Lightsail Nano bundle: workstation (non-server) GC, no background
+    concurrent GC thread, and a 256 MB heap hard limit (runtimeconfig.template.json) — leaving
+    headroom for the MQTT broker, Kestrel, SQLite, and the OS itself. Override the hard limit
+    at runtime without rebuilding via the DOTNET_GCHeapHardLimit env var (hex bytes).
+  -->
+  <PropertyGroup>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+  <!--
     The dashboard (dashboard/) is React/Vite/TS source, not .NET — it is built here so that
     `dotnet run` and `dotnet publish` always embed a fresh wwwroot/ without a separate manual
     step, on this machine only ("build on my machine, never on the server" for the Lightsail
