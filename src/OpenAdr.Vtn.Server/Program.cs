@@ -62,4 +62,9 @@ app.MapNotifiersEndpoints();
 app.MapDashboardEndpoints();
 app.MapHub<DashboardHub>("/hubs/dashboard");
 
+// SPA fallback: only reached for GET requests that didn't match any endpoint above (so it
+// never shadows the REST/SignalR routes), serving index.html for client-side routes like
+// /about so a direct navigation or a refresh on them works, not just in-app navigation.
+app.MapFallbackToFile("index.html");
+
 app.Run();

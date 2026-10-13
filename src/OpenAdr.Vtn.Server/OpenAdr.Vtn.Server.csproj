@@ -17,6 +17,16 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!--
+      wwwroot/ is plain static files served by UseStaticFiles/UseDefaultFiles at runtime and
+      copied to the publish output by IncludeDashboardInPublish below — none of the SDK's
+      Static Web Assets features (bundling, fingerprinting, Razor component integration) are
+      used. Its incremental manifest in obj/ gets out of sync with Vite's content-hashed
+      output filenames (a different hash every time dashboard source changes) and fails the
+      build with a stale "No file exists for the asset" error; disabling it entirely avoids
+      that whole class of problem rather than working around it build-by-build.
+    -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
   <!--
@@ -50,7 +60,7 @@
     <DashboardSource Include="$(DashboardDir)/tsconfig*.json" />
   </ItemGroup>
 
-  <Target Name="BuildDashboard" BeforeTargets="BeforeBuild"
+  <Target Name="BuildDashboard" BeforeTargets="BeforeBuild;AssignTargetPaths"
           Inputs="@(DashboardSource)"
           Outputs="$(MSBuildProjectDirectory)/wwwroot/index.html">
     <Exec Command="npm install" WorkingDirectory="$(DashboardDir)" Condition="!Exists('$(DashboardDir)/node_modules')" />
@@ -63,13 +73,20 @@
   </Target>
 
   <!--
-    wwwroot/ is created by the target above, which runs after the SDK's own static-web-assets
-    item discovery has already evaluated an empty folder on a clean checkout — so the publish
-    file set is added explicitly here, rather than relying on the SDK's implicit wwwroot glob.
+    The app's ContentRootPath is anchored to its own executable directory (see Program.cs),
+    not the caller's working directory — so wwwroot/ must actually be copied next to the
+    executable (both the build output AND the publish output), not just live in the project's
+    source tree. wwwroot/ is created by the target above, which runs after the SDK's own
+    item-discovery has already evaluated an empty folder on a clean checkout, so the files are
+    registered explicitly here (BeforeTargets="AssignTargetPaths", the standard hook for
+    dynamically-generated Content items) rather than via the SDK's implicit wwwroot glob.
   -->
-  <Target Name="IncludeDashboardInPublish" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="BuildDashboard">
+  <Target Name="IncludeDashboardOutput" BeforeTargets="AssignTargetPaths" DependsOnTargets="BuildDashboard">
     <ItemGroup>
-      <Content Include="$(MSBuildProjectDirectory)/wwwroot/**/*.*" CopyToPublishDirectory="PreserveNewest" />
+      <Content Include="$(MSBuildProjectDirectory)/wwwroot/**/*.*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
     </ItemGroup>
   </Target>
 
