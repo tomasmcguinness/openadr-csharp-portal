@@ -26,16 +26,18 @@ export function StatusPanel({ status }: { status: VenStatus | null }) {
         <span className="status-label">VEN</span>
         <span className="status-value">{status.venName}</span>
       </div>
-      <div className="status-row">
-        <span className="status-label">MQTT</span>
-        <span className="status-value">
-          <span
-            className="status-dot"
-            style={{ background: status.mqttConnected ? 'var(--status-good)' : 'var(--status-critical)' }}
-          />
-          {status.mqttConnected ? 'Connected' : 'Disconnected'}
-        </span>
-      </div>
+      {status.mqttConnected !== null && (
+        <div className="status-row">
+          <span className="status-label">MQTT</span>
+          <span className="status-value">
+            <span
+              className="status-dot"
+              style={{ background: status.mqttConnected ? 'var(--status-good)' : 'var(--status-critical)' }}
+            />
+            {status.mqttConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      )}
       <div className="status-row">
         <span className="status-label">Last report</span>
         <span className="status-value">{formatRelative(status.lastReportTime)}</span>

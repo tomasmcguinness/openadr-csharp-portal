@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OpenAdr.Vtn.Core.Logic;
 using OpenAdr.Vtn.Server.Data;
 using OpenAdr.Vtn.Server.Mqtt;
@@ -17,7 +18,7 @@ public static class DashboardEndpoints
     {
         var group = app.MapGroup("/api/dashboard");
 
-        group.MapGet("/status", async (VtnDbContext db, VenConnectionTracker tracker) =>
+        group.MapGet("/status", async (VtnDbContext db, VenConnectionTracker tracker, IOptions<VtnOptions> options) =>
         {
             var vens = await db.Vens.AsNoTracking().ToListAsync();
             var statuses = new List<object>();
@@ -38,7 +39,7 @@ public static class DashboardEndpoints
                 {
                     venName = ven.VenName,
                     venId = ven.Id,
-                    mqttConnected = tracker.IsConnected(ven.VenName),
+                    mqttConnected = options.Value.MqttEnabled ? tracker.IsConnected(ven.VenName) : (bool?)null,
                     lastReportTime = lastReport,
                 });
             }

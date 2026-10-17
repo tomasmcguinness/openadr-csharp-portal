@@ -18,12 +18,14 @@ public static class NotifiersEndpoints
             var response = new NotifiersResponse
             {
                 Webhook = true,
-                Mqtt = new MqttNotifierBindingObject
-                {
-                    Uris = [$"mqtt://{http.Request.Host.Host}:{options.Value.MqttPort}"],
-                    Serialization = "JSON",
-                    Authentication = new MqttNotifierAuthentication { Method = "ANONYMOUS" },
-                },
+                Mqtt = options.Value.MqttEnabled
+                    ? new MqttNotifierBindingObject
+                    {
+                        Uris = [$"mqtt://{http.Request.Host.Host}:{options.Value.MqttPort}"],
+                        Serialization = "JSON",
+                        Authentication = new MqttNotifierAuthentication { Method = "ANONYMOUS" },
+                    }
+                    : null,
             };
 
             return Results.Json(response, Core.OpenAdrJson.Options);

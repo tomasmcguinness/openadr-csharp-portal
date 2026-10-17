@@ -58,12 +58,13 @@ request:
 ## Configuration
 
 `src/OpenAdr.Vtn.Server/appsettings.json` plus environment variables (`Vtn__DatabasePath`,
-`Vtn__MqttPort`, `Kestrel__Endpoints__Http__Url`):
+`Vtn__MqttPort`, `Vtn__MqttEnabled`, `Kestrel__Endpoints__Http__Url`):
 
 | Key | Default | What |
 |---|---|---|
 | `Vtn:DatabasePath` | `/var/lib/openadr-vtn/vtn.db` (`./db/vtn.db` in Development) | SQLite file path; the directory is created automatically if missing |
-| `Vtn:MqttPort` | `1883` | Port the in-process MQTT broker listens on |
+| `Vtn:MqttEnabled` | `false` | Whether the in-process MQTT broker runs at all. When `false`, `/notifiers` reports `mqtt: null` (VENs must poll instead of subscribing) and the dashboard hides the MQTT status row |
+| `Vtn:MqttPort` | `1883` | Port the in-process MQTT broker listens on, when enabled |
 | `Kestrel:Endpoints:Http:Url` | `http://0.0.0.0:80` (`http://localhost:5080` in Development) | What Kestrel binds to |
 
 **The HTTP port is baked into `appsettings.json` as an explicit Kestrel endpoint (port 80),
@@ -95,8 +96,9 @@ dotnet run --project src/OpenAdr.Vtn.Server
 
 This single command builds the dashboard (first run only — see "Dashboard build" below),
 applies EF Core migrations, seeds the `HomeForecast` program and its two demo events on
-first run, and starts the VTN: REST + dashboard on `http://localhost:5080`, MQTT broker on
-`localhost:1883`.
+first run, and starts the VTN: REST + dashboard on `http://localhost:5080`. The in-process
+MQTT broker is off by default (`Vtn:MqttEnabled: false`); set it to `true` to also listen on
+`localhost:1883` for VENs that want push notifications instead of polling.
 
 Open `http://localhost:5080` for the dashboard. It'll show "Waiting for a VEN to report in…"
 until something posts a report — run the fake VEN to see it update live:

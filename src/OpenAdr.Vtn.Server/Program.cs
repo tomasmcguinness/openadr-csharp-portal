@@ -27,9 +27,18 @@ builder.Services.AddDbContext<VtnDbContext>(options =>
     options.UseSqlite($"Data Source={databasePath}"));
 
 builder.Services.AddSingleton<VenConnectionTracker>();
-builder.Services.AddSingleton<MqttBrokerService>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttBrokerService>());
-builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttBrokerService>());
+
+if (vtnOptions.MqttEnabled)
+{
+    builder.Services.AddSingleton<MqttBrokerService>();
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttBrokerService>());
+    builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttBrokerService>());
+}
+else
+{
+    builder.Services.AddSingleton<IMqttPublisher, NullMqttPublisher>();
+}
+
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddSignalR();
 

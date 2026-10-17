@@ -6,4 +6,5 @@ public class VtnOptions
 
     public string DatabasePath { get; set; } = "/var/lib/openadr-vtn/vtn.db";
     public int MqttPort { get; set; } = 1883;
+    public bool MqttEnabled { get; set; } = true;
 }

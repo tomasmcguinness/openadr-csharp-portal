@@ -1,7 +1,7 @@
 export interface VenStatus {
   venName: string
   venId: string
-  mqttConnected: boolean
+  mqttConnected: boolean | null
   lastReportTime: string | null
 }
 

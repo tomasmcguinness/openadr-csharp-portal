@@ -15,6 +15,7 @@ public class FakeVenRunner(VtnClient api, MqttClientWrapper mqtt, string venName
     private string _venId = "";
     private string _programId = "";
     private string _forecastEventId = "";
+    private bool _mqttEnabled;
 
     public async Task RunAsync(CancellationToken ct)
     {
@@ -103,10 +104,16 @@ public class FakeVenRunner(VtnClient api, MqttClientWrapper mqtt, string venName
     private async Task ConnectAndSubscribeAsync(CancellationToken ct)
     {
         var notifiers = await api.GetAsync("/notifiers", ct);
-        if (notifiers.IsSuccess && notifiers.Json<NotifiersResponse>().Mqtt is { } mqttBinding)
+        var mqttBinding = notifiers.IsSuccess ? notifiers.Json<NotifiersResponse>().Mqtt : null;
+        _mqttEnabled = mqttBinding is not null;
+
+        if (!_mqttEnabled)
         {
-            Logger.Info($"VTN advertises MQTT at {string.Join(", ", mqttBinding.Uris)} (auth: {mqttBinding.Authentication.Method}).");
+            Logger.Info("VTN does not advertise MQTT — falling back to REST polling only.");
+            return;
         }
+
+        Logger.Info($"VTN advertises MQTT at {string.Join(", ", mqttBinding!.Uris)} (auth: {mqttBinding.Authentication.Method}).");
 
         await mqtt.ConnectAsync(ct);
         await SubscribeVenScopedTopicsAsync(ct);
@@ -120,6 +127,11 @@ public class FakeVenRunner(VtnClient api, MqttClientWrapper mqtt, string venName
 
     private async Task SubscribeAllTopicAsync(string discoveryPath, CancellationToken ct)
     {
+        if (!_mqttEnabled)
+        {
+            return;
+        }
+
         var response = await api.GetAsync(discoveryPath, ct);
         if (!response.IsSuccess)
         {
