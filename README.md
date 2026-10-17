@@ -18,6 +18,7 @@ access control. Don't expose it to anything you don't trust.
 | `dashboard/` | The "My Home" dashboard (React + Vite + TS), built into `wwwroot/` automatically |
 | `tests/OpenAdr.Vtn.Core.Tests` | xUnit tests: report validation, target filtering, DST bucketing |
 | `Dockerfile` / `docker-compose.yml` | Container build (VTN + fake VEN) for running without a .NET/Node toolchain installed |
+| `Caddyfile` / `docker-compose.caddy.yml` + `caddy/Caddyfile` | Two ways to front the VTN with HTTPS — paste into an existing Caddy elsewhere, or bundle one into this stack |
 | `docs/ven-flow.md` | The exact HTTP/MQTT sequence a VEN follows, with real example payloads — written for porting to ESP-IDF C |
 
 The spec used as source of truth is the real OpenADR 3.1 OpenAPI definition at
@@ -174,12 +175,29 @@ docker compose --profile demo up --build
 
 `vtn` listens on 8080, not 80 — intentionally, so the container can run as the non-root
 `$APP_UID` user without needing `CAP_NET_BIND_SERVICE`. Point a reverse proxy at it for a
-real domain + HTTPS; no Caddy needed in this repo's own compose stack if you already run
-one elsewhere on the LAN — `Caddyfile` in this repo is the block to copy into *that*
-instance's config, next to whatever else it already fronts.
+real domain + HTTPS. Two options, depending on what's easiest for your setup:
 
-Set `VTN_DOMAIN=vtn.tomasmcguinness.com` wherever that Caddy instance gets its other
-`_DOMAIN` vars from, and replace `<docker-host-lan-ip>` with the LAN IP of the machine
-running `docker compose` (not `localhost` — Caddy is on a different host). Caddy issues the
-Let's Encrypt certificate automatically, as long as the DNS record points at the Caddy host
-and ports 80/443 reach it from the internet.
+**Option A — an existing Caddy instance elsewhere on the LAN.** Copy the block in this
+repo's `Caddyfile` into *that* instance's config, alongside whatever else it already
+fronts. Set `VTN_DOMAIN=vtn.tomasmcguinness.com` wherever that Caddy instance gets its
+other `_DOMAIN` vars from, and replace `<docker-host-lan-ip>` with the LAN IP of the
+machine running `docker compose` here (not `localhost` — Caddy is on a different host).
+
+**Option B — bundle Caddy into this project's own stack instead**, if editing that other
+instance's config isn't practical (it belongs to another service, is managed by a
+GUI/orchestrator, you don't want to risk reloading it, etc.):
+
+```sh
+# set VTN_DOMAIN=vtn.tomasmcguinness.com in .env first
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up --build
+```
+
+This adds a `caddy` service (config in `caddy/Caddyfile`) that reverse-proxies to `vtn`
+over this stack's own Docker network — nothing to coordinate with any other service, and
+no `<docker-host-lan-ip>` substitution needed since it's all one compose project. It
+publishes 80/443 on this host, so skip this option if something else here already binds
+those ports.
+
+Either way, Caddy issues the Let's Encrypt certificate automatically, as long as the DNS
+record points at whichever host is running Caddy and ports 80/443 reach it from the
+internet.

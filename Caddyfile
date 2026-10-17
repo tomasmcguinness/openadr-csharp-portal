@@ -1,6 +1,7 @@
-# Not used by docker-compose.yml — this repo doesn't run its own Caddy. This is the block
-# to copy into whatever Caddy instance already fronts other services on your LAN (see
-# README "Run with Docker"), alongside its other site blocks.
+# Used by docker-compose.caddy.yml: a Caddy bundled into this project's own stack, for when
+# fronting the VTN from an existing/external Caddy instance (see the root Caddyfile) isn't
+# practical. Self-contained — reverse-proxies over this project's own Docker network, so it
+# needs nothing from any other service.
 {$VTN_DOMAIN} {
 	tls {
 		# RSA, not Caddy's default ECDSA: the ESP32-S3 HEMS has no ECC accelerator,
@@ -9,5 +10,5 @@
 	}
 
 	encode gzip
-	reverse_proxy <docker-host-lan-ip>:8080
+	reverse_proxy vtn:8080
 }
