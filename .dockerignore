@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/node_modules/
+dashboard/dist/
+src/OpenAdr.Vtn.Server/wwwroot/
+src/OpenAdr.Vtn.Server/db/
+src/OpenAdr.Vtn.Server/publish/
+deploy/.publish/
+tests/
+docs/
+.git/
+.vs/
+.vscode/
+*.db
+*.db-shm
+*.db-wal

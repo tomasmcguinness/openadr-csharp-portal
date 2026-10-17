@@ -17,7 +17,7 @@ access control. Don't expose it to anything you don't trust.
 | `src/OpenAdr.Vtn.FakeVen` | A console app that plays the VEN role end-to-end, for testing without real hardware |
 | `dashboard/` | The "My Home" dashboard (React + Vite + TS), built into `wwwroot/` automatically |
 | `tests/OpenAdr.Vtn.Core.Tests` | xUnit tests: report validation, target filtering, DST bucketing |
-| `deploy/` | systemd unit + deploy script for AWS Lightsail |
+| `Dockerfile` / `docker-compose.yml` | Container build (VTN + fake VEN) for running without a .NET/Node toolchain installed |
 | `docs/ven-flow.md` | The exact HTTP/MQTT sequence a VEN follows, with real example payloads — written for porting to ESP-IDF C |
 
 The spec used as source of truth is the real OpenADR 3.1 OpenAPI definition at
@@ -157,47 +157,29 @@ broker (plain TCP, anonymous, port 1883), discover the `HomeForecast` program an
 forecast event, then `POST /reports` hourly with a 24-interval forecast plus a 1-interval
 actual reading for the hour just completed.
 
-## AWS Lightsail deployment
-
-Targets the **Nano** bundle (512 MB RAM, x86_64 Linux). The app is published
-self-contained, GC-tuned for the memory budget (workstation GC, no concurrent GC, 256 MB
-heap hard limit — see the `PropertyGroup` and `runtimeconfig.template.json` in
-`OpenAdr.Vtn.Server.csproj`), and runs as a non-root systemd service that binds port 80
-directly via `CAP_NET_BIND_SERVICE` — no reverse proxy.
-
-### One-time instance setup
+## Run with Docker
 
 ```sh
-sudo useradd --system --home /opt/openadr-vtn --shell /usr/sbin/nologin openadr-vtn
-sudo mkdir -p /opt/openadr-vtn /var/lib/openadr-vtn
-sudo chown openadr-vtn:openadr-vtn /opt/openadr-vtn /var/lib/openadr-vtn
+cp .env.example .env   # adjust VTN_PORT/VTN_MQTT_ENABLED if needed
+docker compose up --build
 ```
 
-### Lightsail firewall rules
-
-Open these in the instance's **Networking** tab:
-
-| Port | Protocol | Purpose |
-|---|---|---|
-| 80 | TCP | REST API + dashboard |
-| 1883 | TCP | MQTT broker |
-
-(22/TCP for SSH is open by default on a new Lightsail instance — leave it as-is.)
-
-### Deploying
+Builds and starts `vtn` (published to `http://localhost:8080`, SQLite persisted in the
+`vtn-data` named volume) — no .NET/Node toolchain needed on the host, the image builds the
+dashboard and the server the same way `dotnet publish` does locally. Add the fake VEN too:
 
 ```sh
-REMOTE_HOST=<instance-ip> REMOTE_USER=ubuntu ./deploy/deploy.sh
+docker compose --profile demo up --build
 ```
 
-This publishes a self-contained `linux-x64` build **locally** (which also builds the
-dashboard — the React app is never built on the server), copies it and the systemd unit to
-the instance over `scp`, and restarts the service over `ssh`. Re-run it for every
-subsequent deploy; see `deploy/deploy.sh` for the exact steps if you'd rather run them by
-hand.
+`vtn` listens on 8080, not 80 — intentionally, so the container can run as the non-root
+`$APP_UID` user without needing `CAP_NET_BIND_SERVICE`. Point a reverse proxy at it for a
+real domain + HTTPS; no Caddy needed in this repo's own compose stack if you already run
+one elsewhere on the LAN — `Caddyfile` in this repo is the block to copy into *that*
+instance's config, next to whatever else it already fronts.
 
-Tail logs with:
-
-```sh
-ssh <user>@<instance-ip> sudo journalctl -u openadr-vtn -f
-```
+Set `VTN_DOMAIN=vtn.tomasmcguinness.com` wherever that Caddy instance gets its other
+`_DOMAIN` vars from, and replace `<docker-host-lan-ip>` with the LAN IP of the machine
+running `docker compose` (not `localhost` — Caddy is on a different host). Caddy issues the
+Let's Encrypt certificate automatically, as long as the DNS record points at the Caddy host
+and ports 80/443 reach it from the internet.

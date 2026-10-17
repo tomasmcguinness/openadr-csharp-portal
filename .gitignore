@@ -406,4 +406,7 @@ src/OpenAdr.Vtn.Server/db/
 *.db
 *.db-shm
 *.db-wal
-deploy/.publish/
+
+# Local overrides for docker-compose.yml's VTN_PORT/VTN_MQTT_ENABLED/VTN_DOMAIN — see
+# .env.example, which stays checked in.
+.env

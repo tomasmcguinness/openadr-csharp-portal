@@ -1,0 +1,13 @@
+# Not used by docker-compose.yml — this repo doesn't run its own Caddy. This is the block
+# to copy into whatever Caddy instance already fronts other services on your LAN (see
+# README "Run with Docker"), alongside its other site blocks.
+{$VTN_DOMAIN} {
+	tls {
+		# RSA, not Caddy's default ECDSA: the ESP32-S3 HEMS has no ECC accelerator,
+		# and an ECDSA handshake in software is slow enough to time out.
+		key_type rsa2048
+	}
+
+	encode gzip
+	reverse_proxy <docker-host-lan-ip>:8080
+}

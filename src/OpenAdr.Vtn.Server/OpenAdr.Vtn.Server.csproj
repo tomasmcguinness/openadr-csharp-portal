@@ -30,10 +30,11 @@
   </PropertyGroup>
 
   <!--
-    Tuned for the 512 MB Lightsail Nano bundle: workstation (non-server) GC, no background
-    concurrent GC thread, and a 256 MB heap hard limit (runtimeconfig.template.json) — leaving
-    headroom for the MQTT broker, Kestrel, SQLite, and the OS itself. Override the hard limit
-    at runtime without rebuilding via the DOTNET_GCHeapHardLimit env var (hex bytes).
+    Tuned for a small memory budget (e.g. a constrained container or VM): workstation
+    (non-server) GC, no background concurrent GC thread, and a 256 MB heap hard limit
+    (runtimeconfig.template.json) — leaving headroom for Kestrel, SQLite, and the OS itself.
+    Override the hard limit at runtime without rebuilding via the DOTNET_GCHeapHardLimit env
+    var (hex bytes).
   -->
   <PropertyGroup>
     <ServerGarbageCollection>false</ServerGarbageCollection>
@@ -43,9 +44,9 @@
   <!--
     The dashboard (dashboard/) is React/Vite/TS source, not .NET — it is built here so that
     `dotnet run` and `dotnet publish` always embed a fresh wwwroot/ without a separate manual
-    step, on this machine only ("build on my machine, never on the server" for the Lightsail
-    deploy). Inputs/Outputs make this incremental: npm only runs again when dashboard source
-    actually changed, so a plain C# edit-and-run stays fast.
+    step, wherever they're invoked (dev machine or the Docker build stage). Inputs/Outputs
+    make this incremental: npm only runs again when dashboard source actually changed, so a
+    plain C# edit-and-run stays fast.
   -->
   <PropertyGroup>
     <DashboardDir>$(MSBuildProjectDirectory)/../../dashboard</DashboardDir>
